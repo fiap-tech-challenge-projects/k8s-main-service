@@ -1,0 +1,66 @@
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fiap-services
+
+---
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8s-main-service
+  namespace: fiap-services
+
+---
+# ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k8s-main-service-config
+  namespace: fiap-services
+data:
+  LOG_LEVEL: "info"
+  NODE_ENV: "production"
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-main-service
+  namespace: fiap-services
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: k8s-main-service
+  template:
+    metadata:
+      labels:
+        app: k8s-main-service
+    spec:
+      serviceAccountName: k8s-main-service
+      containers:
+      - name: k8s-main-service
+        image: fiap-registry/k8s-main-service:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production"
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-main-service
+  namespace: fiap-services
+spec:
+  selector:
+    app: k8s-main-service
+  ports:
+  - port: 80
+    targetPort: 3000

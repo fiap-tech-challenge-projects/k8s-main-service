@@ -12,6 +12,47 @@ import { createRequire } from 'module'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
 
+// Custom rule: require logger in catch blocks
+const customRule = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description: 'Require logger or console.error in catch blocks',
+      recommended: true,
+    },
+    fixable: null,
+    schema: [],
+  },
+  create(context) {
+    return {
+      CatchClause(node) {
+        const catchBody = node.body.body
+        let hasLogger = false
+
+        for (const statement of catchBody) {
+          const code = context.sourceCode.getText(statement)
+          if (
+            code.includes('logger') ||
+            code.includes('console.error') ||
+            code.includes('this.logger')
+          ) {
+            hasLogger = true
+            break
+          }
+        }
+
+        if (!hasLogger) {
+          context.report({
+            node,
+            message:
+              'Catch block should include logger call (e.g., logger.error(error))',
+          })
+        }
+      },
+    }
+  },
+}
+
 // Define base rules
 const baseRules = {
   // Import rules
