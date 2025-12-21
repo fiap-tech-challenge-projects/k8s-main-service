@@ -1,0 +1,16 @@
+echo "Running pre-commit checks..."
+
+# Run npm 'pre-commit' script only if it is defined in package.json
+if npm run | grep -q "pre-commit"; then
+  npm run pre-commit
+
+  # Check if pre-commit checks succeeded
+  if [ $? -ne 0 ]; then
+    echo "Pre-commit checks failed. Please fix the issues and try again."
+    exit 1
+  fi
+else
+  echo "No npm 'pre-commit' script defined; skipping npm-based pre-commit checks."
+fi
+
+echo "Pre-commit checks completed successfully!" 
