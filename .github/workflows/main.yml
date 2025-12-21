@@ -13,6 +13,8 @@ jobs:
   quick-build:
     name: Quick build for deploy testing
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
