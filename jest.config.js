@@ -1,9 +1,10 @@
 module.exports = {
+  preset: 'ts-jest',
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: 'src',
   testRegex: '.*\\.spec\\.ts$',
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.ts$': 'ts-jest',
   },
   collectCoverageFrom: [
     '**/*.(t|j)s',
@@ -16,7 +17,6 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
-  collectCoverage: process.env.CI === 'true',
   coverageThreshold: {
     global: {
       branches: 60,
