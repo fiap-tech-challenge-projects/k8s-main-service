@@ -1,0 +1,46 @@
+# =============================================================================
+# Service - FIAP Tech Challenge API
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: fiap-tech-challenge-api
+  namespace: ftc-app
+  labels:
+    app.kubernetes.io/name: fiap-tech-challenge-api
+    app.kubernetes.io/component: api
+  annotations:
+    # Para uso com AWS Load Balancer Controller
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+spec:
+  type: ClusterIP  # Usar LoadBalancer se nao usar Ingress
+  selector:
+    app: fiap-tech-challenge-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+
+---
+# Service para metricas (interno)
+apiVersion: v1
+kind: Service
+metadata:
+  name: fiap-tech-challenge-api-metrics
+  namespace: ftc-app
+  labels:
+    app.kubernetes.io/name: fiap-tech-challenge-api
+    app.kubernetes.io/component: metrics
+spec:
+  type: ClusterIP
+  selector:
+    app: fiap-tech-challenge-api
+  ports:
+    - name: metrics
+      port: 3000
+      targetPort: http
+      protocol: TCP
