@@ -1,0 +1,148 @@
+# =============================================================================
+# Kustomization - Staging Overlay
+# =============================================================================
+# Deploy: Branch develop → Namespace ftc-app-staging
+# =============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: fiap-tech-challenge-staging
+
+namespace: ftc-app-staging
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: staging
+
+# Override replicas for staging
+replicas:
+  - name: fiap-tech-challenge-api
+    count: 2
+
+# Override images
+images:
+  - name: fiap-tech-challenge-api
+    newName: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/fiap-tech-challenge-api
+    newTag: staging
+
+# Patches for staging
+patches:
+  # Namespace label
+  - target:
+      kind: Namespace
+      name: ftc-app
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: ftc-app-staging
+      - op: replace
+        path: /metadata/labels/name
+        value: ftc-app-staging
+      - op: replace
+        path: /metadata/labels/environment
+        value: staging
+
+  # Update ServiceAccount with IRSA role for staging
+  - target:
+      kind: ServiceAccount
+      name: fiap-tech-challenge-api
+    patch: |-
+      - op: replace
+        path: /metadata/annotations/eks.amazonaws.com~1role-arn
+        value: arn:aws:iam::<AWS_ACCOUNT_ID>:role/fiap-tech-challenge-secrets-access-staging
+
+  # Reduce resources for staging (cost optimization)
+  - target:
+      kind: Deployment
+      name: fiap-tech-challenge-api
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "50m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "128Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "250m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "256Mi"
+
+  # Update ConfigMap for staging environment
+  - target:
+      kind: ConfigMap
+      name: fiap-tech-challenge-config
+    patch: |-
+      - op: replace
+        path: /data/NODE_ENV
+        value: "staging"
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "debug"
+      - op: replace
+        path: /data/OTEL_SERVICE_NAME
+        value: "fiap-tech-challenge-api-staging"
+
+  # Update ExternalSecrets to use staging paths
+  - target:
+      kind: ExternalSecret
+      name: database-credentials
+    patch: |-
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: fiap-tech-challenge/staging/database/credentials
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: fiap-tech-challenge/staging/database/credentials
+      - op: replace
+        path: /spec/data/2/remoteRef/key
+        value: fiap-tech-challenge/staging/database/credentials
+      - op: replace
+        path: /spec/data/3/remoteRef/key
+        value: fiap-tech-challenge/staging/database/credentials
+      - op: replace
+        path: /spec/data/4/remoteRef/key
+        value: fiap-tech-challenge/staging/database/credentials
+      - op: replace
+        path: /spec/data/5/remoteRef/key
+        value: fiap-tech-challenge/staging/database/credentials
+
+  - target:
+      kind: ExternalSecret
+      name: auth-config
+    patch: |-
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: fiap-tech-challenge/staging/auth/config
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: fiap-tech-challenge/staging/auth/config
+      - op: replace
+        path: /spec/data/2/remoteRef/key
+        value: fiap-tech-challenge/staging/auth/config
+
+  # Reduce HPA for staging
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: fiap-tech-challenge-api
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 3
+
+  # Update Ingress host for staging
+  - target:
+      kind: Ingress
+      name: fiap-tech-challenge-api
+    patch: |-
+      - op: replace
+        path: /metadata/annotations/alb.ingress.kubernetes.io~1tags
+        value: "Environment=staging,Project=fiap-tech-challenge"
