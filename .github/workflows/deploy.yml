@@ -14,6 +14,7 @@ on:
   pull_request:
     branches:
       - main
+      - develop
     paths:
       - 'src/**'
       - 'k8s/**'
@@ -24,17 +25,17 @@ on:
       environment:
         description: 'Environment to deploy'
         required: true
-        default: 'development'
+        default: 'staging'
         type: choice
         options:
-          - development
+          - staging
           - production
 
 env:
   NODE_VERSION: '20.x'
   AWS_REGION: 'us-east-1'
   ECR_REPOSITORY: 'fiap-tech-challenge-api'
-  EKS_CLUSTER_NAME: 'fiap-tech-challenge-eks-development'
+  EKS_CLUSTER_NAME: 'fiap-tech-challenge-eks'
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -86,6 +87,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name != 'pull_request'
+    outputs:
+      image_tag: ${{ steps.image.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -103,6 +106,11 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Get image tag
+        id: image
+        run: |
+          echo "tag=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Docker meta
         id: meta
@@ -125,16 +133,16 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ---------------------------------------------------------------------------
-  # Deploy to Kubernetes
+  # Deploy to Staging (develop branch)
   # ---------------------------------------------------------------------------
-  deploy:
-    name: Deploy to Kubernetes
+  deploy-staging:
+    name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: docker
     if: |
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') &&
+      github.ref == 'refs/heads/develop' &&
       github.event_name != 'pull_request'
-    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    environment: staging
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -153,42 +161,119 @@ jobs:
       - name: Setup Kustomize
         uses: imranismail/setup-kustomize@v2
 
-      - name: Get image tag
-        id: image
-        run: |
-          echo "tag=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
       - name: Update Kustomization
         run: |
-          cd k8s/overlays/development
-          kustomize edit set image fiap-tech-challenge-api=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ steps.image.outputs.tag }}
+          cd k8s/overlays/staging
+          kustomize edit set image fiap-tech-challenge-api=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.docker.outputs.image_tag }}
 
-      - name: Deploy to Kubernetes
+      - name: Deploy to Kubernetes (Staging)
         run: |
-          kustomize build k8s/overlays/development | kubectl apply -f -
+          kustomize build k8s/overlays/staging | kubectl apply -f -
 
       - name: Wait for deployment
         run: |
-          kubectl rollout status deployment/fiap-tech-challenge-api -n ftc-app --timeout=300s
+          kubectl rollout status deployment/fiap-tech-challenge-api -n ftc-app-staging --timeout=300s
 
       - name: Verify deployment
         run: |
-          kubectl get pods -n ftc-app -l app=fiap-tech-challenge-api
-          kubectl get svc -n ftc-app
-          kubectl get ingress -n ftc-app
+          echo "=== Pods ==="
+          kubectl get pods -n ftc-app-staging -l app=fiap-tech-challenge-api
+          echo ""
+          echo "=== Services ==="
+          kubectl get svc -n ftc-app-staging
+          echo ""
+          echo "=== Ingress ==="
+          kubectl get ingress -n ftc-app-staging
 
       - name: Get Load Balancer URL
         id: lb
         run: |
-          LB_URL=$(kubectl get ingress fiap-tech-challenge-api -n ftc-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "pending")
+          LB_URL=$(kubectl get ingress fiap-tech-challenge-api -n ftc-app-staging -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "pending")
           echo "url=$LB_URL" >> $GITHUB_OUTPUT
 
       - name: Summary
         run: |
-          echo "## Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "## Staging Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Environment" >> $GITHUB_STEP_SUMMARY
+          echo "- **Namespace:** ftc-app-staging" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** develop" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Image" >> $GITHUB_STEP_SUMMARY
-          echo "\`${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ steps.image.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "\`${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.docker.outputs.image_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Load Balancer" >> $GITHUB_STEP_SUMMARY
+          echo "\`${{ steps.lb.outputs.url }}\`" >> $GITHUB_STEP_SUMMARY
+
+  # ---------------------------------------------------------------------------
+  # Deploy to Production (main branch)
+  # ---------------------------------------------------------------------------
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: docker
+    if: |
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request'
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Update Kustomization
+        run: |
+          cd k8s/overlays/production
+          kustomize edit set image fiap-tech-challenge-api=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.docker.outputs.image_tag }}
+
+      - name: Deploy to Kubernetes (Production)
+        run: |
+          kustomize build k8s/overlays/production | kubectl apply -f -
+
+      - name: Wait for deployment
+        run: |
+          kubectl rollout status deployment/fiap-tech-challenge-api -n ftc-app-production --timeout=300s
+
+      - name: Verify deployment
+        run: |
+          echo "=== Pods ==="
+          kubectl get pods -n ftc-app-production -l app=fiap-tech-challenge-api
+          echo ""
+          echo "=== Services ==="
+          kubectl get svc -n ftc-app-production
+          echo ""
+          echo "=== Ingress ==="
+          kubectl get ingress -n ftc-app-production
+
+      - name: Get Load Balancer URL
+        id: lb
+        run: |
+          LB_URL=$(kubectl get ingress fiap-tech-challenge-api -n ftc-app-production -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "pending")
+          echo "url=$LB_URL" >> $GITHUB_OUTPUT
+
+      - name: Summary
+        run: |
+          echo "## Production Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Environment" >> $GITHUB_STEP_SUMMARY
+          echo "- **Namespace:** ftc-app-production" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** main" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Image" >> $GITHUB_STEP_SUMMARY
+          echo "\`${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.docker.outputs.image_tag }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Load Balancer" >> $GITHUB_STEP_SUMMARY
           echo "\`${{ steps.lb.outputs.url }}\`" >> $GITHUB_STEP_SUMMARY
