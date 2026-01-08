@@ -4,11 +4,17 @@ import { UserContextMiddleware } from '@shared/middleware'
 import { UserContextService } from '@shared/services'
 
 describe('UserContextMiddleware', () => {
-  it('sets user context when req.user present', () => {
+  it('sets user context when API Gateway headers present', () => {
     const svc = new UserContextService()
     const mw = new UserContextMiddleware(svc)
 
-    const req: any = { user: { id: 'u1', email: 'a@b.com', role: UserRole.CLIENT } }
+    const req: any = {
+      headers: {
+        'x-user-id': 'u1',
+        'x-user-email': 'a@b.com',
+        'x-user-role': UserRole.CLIENT,
+      },
+    }
     const res: any = {}
     const next = jest.fn()
 
