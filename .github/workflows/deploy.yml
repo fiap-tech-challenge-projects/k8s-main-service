@@ -46,6 +46,22 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.meta.outputs.version }}
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fiap_db_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -66,7 +82,9 @@ jobs:
         run: npm run build
 
       - name: Test
-        run: npm test || true
+        run: npm test
+        env:
+          DATABASE_URL: postgresql://admin:postgres@localhost:5432/fiap_db_test?schema=public
 
       - name: Docker meta
         id: meta
