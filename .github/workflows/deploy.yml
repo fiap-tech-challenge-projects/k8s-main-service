@@ -81,10 +81,23 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Test
-        run: npm test
+      - name: Test - Unit
+        run: npm run test:unit
         env:
           DATABASE_URL: postgresql://admin:postgres@localhost:5432/fiap_db_test?schema=public
+
+      - name: Setup Prisma Schema for Integration Tests
+        run: |
+          DATABASE_URL="postgresql://admin:postgres@localhost:5432/fiap_db_test?schema=public" \
+          npx prisma db push --schema=./prisma/schema/ --skip-generate
+        env:
+          DATABASE_URL: postgresql://admin:postgres@localhost:5432/fiap_db_test?schema=public
+
+      - name: Test - Integration
+        run: npm run test:integration:only
+        env:
+          DATABASE_URL: postgresql://admin:postgres@localhost:5432/fiap_db_test?schema=public
+          TEST_DATABASE_URL: postgresql://admin:postgres@localhost:5432/fiap_db_test?schema=public
 
       - name: Docker meta
         id: meta
