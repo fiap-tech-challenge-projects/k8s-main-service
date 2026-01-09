@@ -8,6 +8,13 @@ import { LoggingInterceptor, MetricsInterceptor } from '@shared/interceptors'
 import { MetricsService } from '@shared/services'
 
 import { AppModule } from './app.module'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import _tracing from './tracing'
+
+/**
+ * Initialize OpenTelemetry SDK before any other code runs.
+ * This must be called as early as possible to ensure all automatic instrumentation works.
+ */
 
 /**
  * Sets up CORS configuration.
