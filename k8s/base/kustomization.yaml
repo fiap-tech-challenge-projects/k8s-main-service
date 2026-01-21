@@ -1,0 +1,32 @@
+# =============================================================================
+# Kustomization - Base Configuration
+# =============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: fiap-tech-challenge-base
+
+namespace: ftc-app
+
+commonLabels:
+  app.kubernetes.io/part-of: fiap-tech-challenge
+  app.kubernetes.io/managed-by: kustomize
+
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - configmap.yaml
+  - external-secret.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - hpa.yaml
+  - pdb.yaml
+
+# Images can be overridden in overlays
+images:
+  - name: fiap-tech-challenge-api
+    newName: fiap-tech-challenge-api
+    newTag: latest

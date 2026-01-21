@@ -1,0 +1,7 @@
+export { ClientDtoFactory } from './client-dto.factory'
+export { EmployeeDtoFactory } from './employee-dto.factory'
+export { ServiceExecutionDtoFactory } from './service-execution-dto.factory'
+export { ServiceOrderDtoFactory } from './service-order-dto.factory'
+export { VehicleEvaluationDtoFactory } from './vehicle-evaluation-dto.factory'
+export { VehicleDtoFactory } from './vehicle-dto.factory'
+export { BudgetItemDtoFactory } from './budget-item-dto.factory'
