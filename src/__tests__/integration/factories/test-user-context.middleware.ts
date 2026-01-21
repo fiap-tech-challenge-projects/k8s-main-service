@@ -19,6 +19,8 @@ export class TestUserContextMiddleware implements NestMiddleware {
 
   /**
    * Extracts user information from JWT token and sets it in the user context service.
+   * Also sets API Gateway headers to mimic production behavior where Lambda Authorizer
+   * validates JWT and sets these headers.
    * @param req - Express request object
    * @param res - Express response object
    * @param next - Express next function
@@ -37,8 +39,10 @@ export class TestUserContextMiddleware implements NestMiddleware {
           }
         | undefined
 
+      let userContext: UserContext | null = null
+
       if (user?.role) {
-        const userContext: UserContext = {
+        userContext = {
           userId: user.sub ?? user.id ?? '',
           email: user.email ?? '',
           role: user.role,
@@ -55,7 +59,7 @@ export class TestUserContextMiddleware implements NestMiddleware {
           try {
             const decoded = jwt.decode(token) as any
             if (decoded && decoded.sub && decoded.email && decoded.role) {
-              const userContext: UserContext = {
+              userContext = {
                 userId: decoded.sub,
                 email: decoded.email,
                 role: decoded.role as UserRole,
@@ -67,6 +71,20 @@ export class TestUserContextMiddleware implements NestMiddleware {
           } catch (error) {
             console.error('Error decoding JWT token in test middleware:', error)
           }
+        }
+      }
+
+      // Set API Gateway headers to mimic Lambda Authorizer behavior
+      // This allows JwtAuthGuard to work in test environment
+      if (userContext) {
+        req.headers['x-user-id'] = userContext.userId
+        req.headers['x-user-email'] = userContext.email
+        req.headers['x-user-role'] = userContext.role
+        if (userContext.clientId) {
+          req.headers['x-client-id'] = userContext.clientId
+        }
+        if (userContext.employeeId) {
+          req.headers['x-employee-id'] = userContext.employeeId
         }
       }
     } catch (error) {
