@@ -1,8 +1,15 @@
 // Environment setup for tests
 process.env.NODE_ENV = 'test'
 process.env.PORT = '3000'
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_db'
-process.env.DIRECT_URL = 'postgresql://test:test@localhost:5432/test_db'
+
+// Only set DATABASE_URL if not already set (allows CI/CD to override)
+// CI uses: postgresql://admin:postgres@localhost:5432/fiap_db_test
+// Local uses: postgresql://postgres:postgres@localhost:5433/fiap-tech-challenge-test
+process.env.DATABASE_URL =
+  process.env.DATABASE_URL ??
+  process.env.TEST_DATABASE_URL ??
+  'postgresql://postgres:postgres@localhost:5433/fiap-tech-challenge-test?schema=public'
+process.env.DIRECT_URL = process.env.DIRECT_URL ?? process.env.DATABASE_URL
 
 // Suppress all console output during tests
 console.log = jest.fn()
