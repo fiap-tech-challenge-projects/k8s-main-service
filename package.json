@@ -148,8 +148,8 @@
     "setupFiles": [
       "<rootDir>/__tests__/factories/setup/setup-env.ts"
     ],
-    "silent": true,
-    "verbose": false,
+    "silent": false,
+    "verbose": true,
     "moduleNameMapper": {
       "^@application/(.*)$": "<rootDir>/application/$1",
       "^@domain/(.*)$": "<rootDir>/domain/$1",

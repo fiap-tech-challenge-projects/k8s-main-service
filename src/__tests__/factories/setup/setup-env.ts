@@ -11,28 +11,29 @@ process.env.DATABASE_URL =
   'postgresql://postgres:postgres@localhost:5433/fiap-tech-challenge-test?schema=public'
 process.env.DIRECT_URL = process.env.DIRECT_URL ?? process.env.DATABASE_URL
 
-// Suppress all console output during tests
+// Suppress non-critical console output during tests (but keep errors/warnings visible)
 console.log = jest.fn()
-console.error = jest.fn()
-console.warn = jest.fn()
 console.info = jest.fn()
 console.debug = jest.fn()
 
 // Global logger mocking to suppress NestJS log output during tests
 import { Logger } from '@nestjs/common'
 
-// Mock all logger methods globally
+// Mock non-critical logger methods (keep errors and warnings visible for debugging)
 jest.spyOn(Logger.prototype, 'log').mockImplementation(() => {})
-jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {})
-jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {})
 jest.spyOn(Logger.prototype, 'debug').mockImplementation(() => {})
 jest.spyOn(Logger.prototype, 'verbose').mockImplementation(() => {})
-jest.spyOn(Logger.prototype, 'fatal').mockImplementation(() => {})
 
-// Also override stdout/stderr write to aggressively suppress any logger output
-// (some Nest logger implementations write directly to stdout/stderr)
-;(process.stdout as any).write = () => true
-;(process.stderr as any).write = () => true
+// IMPORTANT: Do NOT suppress errors, warnings, or fatal logs
+// These are critical for debugging test failures
+// jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {})
+// jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {})
+// jest.spyOn(Logger.prototype, 'fatal').mockImplementation(() => {})
+
+// IMPORTANT: Do NOT override stdout/stderr
+// This prevents error messages from being displayed, making debugging impossible
+// ;(process.stdout as any).write = () => true
+// ;(process.stderr as any).write = () => true
 
 // Mock Pino logger to suppress nestjs-pino logs
 jest.mock('nestjs-pino', () => ({
