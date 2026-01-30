@@ -1,0 +1,157 @@
+# =============================================================================
+# Kustomization - Production Overlay
+# =============================================================================
+# Deploy: Branch main → Namespace ftc-app-production
+# =============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: fiap-tech-challenge-production
+
+namespace: ftc-app-production
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: production
+
+# Production replicas (more instances for reliability)
+replicas:
+  - name: fiap-tech-challenge-api
+    count: 3
+
+# Override images
+images:
+  - name: fiap-tech-challenge-api
+    newName: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/fiap-tech-challenge-api
+    newTag: production
+
+# Patches for production
+patches:
+  # Namespace label
+  - target:
+      kind: Namespace
+      name: ftc-app
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: ftc-app-production
+      - op: replace
+        path: /metadata/labels/name
+        value: ftc-app-production
+      - op: replace
+        path: /metadata/labels/environment
+        value: production
+
+  # Update ServiceAccount with IRSA role for production
+  - target:
+      kind: ServiceAccount
+      name: fiap-tech-challenge-api
+    patch: |-
+      - op: replace
+        path: /metadata/annotations/eks.amazonaws.com~1role-arn
+        value: arn:aws:iam::<AWS_ACCOUNT_ID>:role/fiap-tech-challenge-secrets-access-production
+
+  # Production resources (higher limits for performance)
+  - target:
+      kind: Deployment
+      name: fiap-tech-challenge-api
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "100m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "256Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "500m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "512Mi"
+
+  # Update ConfigMap for production environment
+  - target:
+      kind: ConfigMap
+      name: fiap-tech-challenge-config
+    patch: |-
+      - op: replace
+        path: /data/NODE_ENV
+        value: "production"
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "warn"
+      - op: replace
+        path: /data/OTEL_SERVICE_NAME
+        value: "fiap-tech-challenge-api-production"
+
+  # Update ExternalSecrets to use production paths
+  - target:
+      kind: ExternalSecret
+      name: database-credentials
+    patch: |-
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: fiap-tech-challenge/production/database/credentials
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: fiap-tech-challenge/production/database/credentials
+      - op: replace
+        path: /spec/data/2/remoteRef/key
+        value: fiap-tech-challenge/production/database/credentials
+      - op: replace
+        path: /spec/data/3/remoteRef/key
+        value: fiap-tech-challenge/production/database/credentials
+      - op: replace
+        path: /spec/data/4/remoteRef/key
+        value: fiap-tech-challenge/production/database/credentials
+      - op: replace
+        path: /spec/data/5/remoteRef/key
+        value: fiap-tech-challenge/production/database/credentials
+
+  - target:
+      kind: ExternalSecret
+      name: auth-config
+    patch: |-
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: fiap-tech-challenge/production/auth/config
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: fiap-tech-challenge/production/auth/config
+      - op: replace
+        path: /spec/data/2/remoteRef/key
+        value: fiap-tech-challenge/production/auth/config
+
+  # Production HPA (higher scaling limits)
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: fiap-tech-challenge-api
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 5
+
+  # Production PDB (require at least 2 pods available)
+  - target:
+      kind: PodDisruptionBudget
+      name: fiap-tech-challenge-api
+    patch: |-
+      - op: replace
+        path: /spec/minAvailable
+        value: 2
+
+  # Update Ingress for production
+  - target:
+      kind: Ingress
+      name: fiap-tech-challenge-api
+    patch: |-
+      - op: replace
+        path: /metadata/annotations/alb.ingress.kubernetes.io~1tags
+        value: "Environment=production,Project=fiap-tech-challenge"

@@ -1,0 +1,17 @@
+# =============================================================================
+# Pod Disruption Budget - FIAP Tech Challenge API
+# =============================================================================
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fiap-tech-challenge-api
+  namespace: ftc-app
+  labels:
+    app.kubernetes.io/name: fiap-tech-challenge-api
+    app.kubernetes.io/component: availability
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: fiap-tech-challenge-api

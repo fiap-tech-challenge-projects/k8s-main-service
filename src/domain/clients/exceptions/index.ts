@@ -1,0 +1,6 @@
+export * from './client-not-found.exception'
+export * from './client-already-exists.exception'
+export * from './client-email-already-exists.exception'
+export * from './client-cpf-cnpj-already-exists.exception'
+export * from './client-invalid-cpf-cnpj.exception'
+export * from './client-invalid-email.exception'

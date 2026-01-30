@@ -1,0 +1,41 @@
+# =============================================================================
+# ConfigMap - Application Configuration
+# =============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fiap-tech-challenge-config
+  namespace: ftc-app
+  labels:
+    app.kubernetes.io/name: fiap-tech-challenge-api
+    app.kubernetes.io/component: config
+data:
+  # Application
+  NODE_ENV: "production"
+  PORT: "3000"
+
+  # API Configuration
+  API_PREFIX: "api"
+  API_VERSION: "v1"
+
+  # CORS
+  CORS_ORIGINS: "*"
+
+  # Logging
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+
+  # OpenTelemetry
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://signoz-otel-collector.signoz.svc.cluster.local:4317"
+  OTEL_SERVICE_NAME: "fiap-tech-challenge-api"
+  OTEL_TRACES_ENABLED: "true"
+  OTEL_METRICS_ENABLED: "true"
+  OTEL_LOGS_ENABLED: "true"
+
+  # Database (non-sensitive)
+  DB_POOL_MIN: "2"
+  DB_POOL_MAX: "10"
+
+  # Cache (if using Redis)
+  CACHE_TTL: "300"

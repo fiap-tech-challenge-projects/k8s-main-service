@@ -1,0 +1,17 @@
+# =============================================================================
+# Namespace - FIAP Tech Challenge Application
+# =============================================================================
+# Namespace dedicado para a aplicacao principal
+# Nota: Este namespace e criado pelo kubernetes-core-infra via Terraform
+# Este arquivo serve como referencia e para deploy manual
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ftc-app
+  labels:
+    name: ftc-app
+    app.kubernetes.io/name: fiap-tech-challenge
+    app.kubernetes.io/part-of: fiap-tech-challenge
+    environment: development

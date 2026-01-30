@@ -12,6 +12,8 @@ import { createRequire } from 'module'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
 
+const customRule = require('./scripts/eslint-rules/require-logger-in-catch.js')
+
 // Define base rules
 const baseRules = {
   // Import rules
