@@ -11,6 +11,9 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 
+# Disable husky git hooks in Docker
+ENV HUSKY=0
+
 # Install dependencies only
 COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
@@ -21,6 +24,9 @@ RUN npm ci --only=production && npm cache clean --force
 FROM node:20-alpine AS builder
 
 WORKDIR /app
+
+# Disable husky git hooks in Docker
+ENV HUSKY=0
 
 COPY package*.json ./
 RUN npm ci
