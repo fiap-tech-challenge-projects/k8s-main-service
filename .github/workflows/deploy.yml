@@ -35,7 +35,7 @@ env:
   NODE_VERSION: '20.x'
   AWS_REGION: 'us-east-1'
   ECR_REPOSITORY: 'fiap-tech-challenge-api'
-  EKS_CLUSTER_NAME: 'fiap-tech-challenge-eks'
+  # Note: EKS cluster name includes environment suffix (e.g., fiap-tech-challenge-eks-staging)
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -193,7 +193,8 @@ jobs:
 
       - name: Update kubeconfig
         run: |
-          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+          EKS_CLUSTER="fiap-tech-challenge-eks-${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}"
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $EKS_CLUSTER
 
       - name: Setup Kustomize
         uses: imranismail/setup-kustomize@v2
@@ -269,7 +270,8 @@ jobs:
 
       - name: Update kubeconfig
         run: |
-          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+          EKS_CLUSTER="fiap-tech-challenge-eks-${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}"
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $EKS_CLUSTER
 
       - name: Setup Kustomize
         uses: imranismail/setup-kustomize@v2
