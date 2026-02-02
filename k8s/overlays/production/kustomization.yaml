@@ -31,20 +31,7 @@ images:
 
 # Patches for production
 patches:
-  # Namespace label
-  - target:
-      kind: Namespace
-      name: ftc-app
-    patch: |-
-      - op: replace
-        path: /metadata/name
-        value: ftc-app-production
-      - op: replace
-        path: /metadata/labels/name
-        value: ftc-app-production
-      - op: replace
-        path: /metadata/labels/environment
-        value: production
+  # NOTE: Namespace created by kubernetes-addons terraform, no patch needed
 
   # Update ServiceAccount with IRSA role for production
   - target:

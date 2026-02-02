@@ -10,7 +10,7 @@ metadata:
 
 namespace: ftc-app
 
-bases:
+resources:
   - ../../base
 
 commonLabels:

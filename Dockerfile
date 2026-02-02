@@ -11,9 +11,9 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 
-# Install dependencies only
+# Install dependencies only (skip scripts like husky prepare)
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production --ignore-scripts && npm cache clean --force
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
@@ -23,7 +23,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # Copy source code
 COPY . .
