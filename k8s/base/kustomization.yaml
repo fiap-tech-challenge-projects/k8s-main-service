@@ -15,7 +15,7 @@ commonLabels:
   app.kubernetes.io/managed-by: kustomize
 
 resources:
-  - namespace.yaml
+  # NOTE: namespace created by kubernetes-addons terraform
   - serviceaccount.yaml
   - configmap.yaml
   - external-secret.yaml
