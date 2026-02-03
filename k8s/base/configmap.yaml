@@ -26,12 +26,15 @@ data:
   LOG_LEVEL: "info"
   LOG_FORMAT: "json"
 
-  # OpenTelemetry
-  OTEL_EXPORTER_OTLP_ENDPOINT: "http://signoz-otel-collector.signoz.svc.cluster.local:4317"
+  # OpenTelemetry - DISABLED (using CloudWatch instead)
+  # For CloudWatch observability:
+  # - Logs: Pino JSON logs → CloudWatch Logs (via FluentBit/CloudWatch Agent DaemonSet)
+  # - Metrics: Prometheus /metrics endpoint → CloudWatch Container Insights
+  # - Traces: Optional AWS X-Ray via ADOT Collector (not configured yet)
   OTEL_SERVICE_NAME: "fiap-tech-challenge-api"
-  OTEL_TRACES_ENABLED: "true"
-  OTEL_METRICS_ENABLED: "true"
-  OTEL_LOGS_ENABLED: "true"
+  OTEL_TRACES_ENABLED: "false"
+  OTEL_METRICS_ENABLED: "false"
+  OTEL_LOGS_ENABLED: "false"
 
   # Database (non-sensitive)
   DB_POOL_MIN: "2"

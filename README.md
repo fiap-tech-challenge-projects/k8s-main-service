@@ -31,22 +31,22 @@ Este repositorio contem o codigo da aplicacao principal e os manifests Kubernete
               +--------------+--------------+
               |              |              |
         +-----v-----+  +-----v-----+  +-----v-----+
-        |    RDS    |  |  SigNoz   |  |  Secrets  |
-        | PostgreSQL|  |   OTel    |  |  Manager  |
+        |    RDS    |  | CloudWatch|  |  Secrets  |
+        | PostgreSQL|  |  Insights |  |  Manager  |
         +-----------+  +-----------+  +-----------+
 ```
 
 ## Tecnologias
 
-| Tecnologia | Versao | Descricao |
-|------------|--------|-----------|
-| NestJS | 11.x | Framework Node.js |
-| TypeScript | 5.x | Linguagem |
-| Prisma | 6.x | ORM |
-| PostgreSQL | 15.x | Banco de dados |
-| Kubernetes | 1.28 | Orquestracao |
-| Kustomize | 5.x | Configuracao K8s |
-| OpenTelemetry | - | Observabilidade |
+| Tecnologia    | Versao | Descricao         |
+| ------------- | ------ | ----------------- |
+| NestJS        | 11.x   | Framework Node.js |
+| TypeScript    | 5.x    | Linguagem         |
+| Prisma        | 6.x    | ORM               |
+| PostgreSQL    | 15.x   | Banco de dados    |
+| Kubernetes    | 1.28   | Orquestracao      |
+| Kustomize     | 5.x    | Configuracao K8s  |
+| OpenTelemetry | -      | Observabilidade   |
 
 ## Pre-requisitos
 
@@ -169,27 +169,39 @@ k8s-main-service/
 
 ## Manifests Kubernetes
 
-| Arquivo | Descricao |
-|---------|-----------|
-| `deployment.yaml` | Deployment com 2 replicas, rolling update |
-| `service.yaml` | ClusterIP service + metrics service |
-| `ingress.yaml` | ALB Ingress com HTTPS redirect |
-| `configmap.yaml` | Configuracoes nao-sensiveis |
-| `external-secret.yaml` | Integracao com AWS Secrets Manager |
-| `hpa.yaml` | Autoscaling baseado em CPU/memoria |
-| `pdb.yaml` | Pod Disruption Budget (minAvailable: 1) |
-| `serviceaccount.yaml` | ServiceAccount com IRSA |
+| Arquivo                | Descricao                                 |
+| ---------------------- | ----------------------------------------- |
+| `deployment.yaml`      | Deployment com 2 replicas, rolling update |
+| `service.yaml`         | ClusterIP service + metrics service       |
+| `ingress.yaml`         | ALB Ingress com HTTPS redirect            |
+| `configmap.yaml`       | Configuracoes nao-sensiveis               |
+| `external-secret.yaml` | Integracao com AWS Secrets Manager        |
+| `hpa.yaml`             | Autoscaling baseado em CPU/memoria        |
+| `pdb.yaml`             | Pod Disruption Budget (minAvailable: 1)   |
+| `serviceaccount.yaml`  | ServiceAccount com IRSA                   |
 
 ## Observabilidade
 
-### OpenTelemetry
+### CloudWatch Container Insights
 
-A aplicacao exporta traces, metrics e logs para o SigNoz:
+A aplicacao envia observability data para AWS CloudWatch:
 
-```typescript
-// Endpoint configurado via ConfigMap
-OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector.signoz.svc.cluster.local:4317
-```
+**Logs estruturados (JSON)**:
+
+- Logger: Pino (nestjs-pino)
+- Formato: JSON estruturado
+- Destino: CloudWatch Logs via FluentBit/CloudWatch Agent DaemonSet
+
+**Métricas**:
+
+- Endpoint: `GET /metrics` (formato Prometheus)
+- Coleta: CloudWatch Container Insights
+- CPU, memória, requests/s, latência
+
+**Traces** (opcional):
+
+- AWS X-Ray via ADOT Collector (não configurado atualmente)
+- OpenTelemetry desabilitado no ConfigMap
 
 ### Health Checks
 
@@ -210,35 +222,35 @@ curl http://localhost:3000/metrics
 
 ## Endpoints da API
 
-| Metodo | Endpoint | Descricao |
-|--------|----------|-----------|
-| GET | `/health` | Health check |
-| GET | `/api/v1/clients` | Listar clientes |
-| POST | `/api/v1/clients` | Criar cliente |
-| GET | `/api/v1/service-orders` | Listar ordens de servico |
-| POST | `/api/v1/service-orders` | Criar ordem de servico |
-| ... | ... | ... |
+| Metodo | Endpoint                 | Descricao                |
+| ------ | ------------------------ | ------------------------ |
+| GET    | `/health`                | Health check             |
+| GET    | `/api/v1/clients`        | Listar clientes          |
+| POST   | `/api/v1/clients`        | Criar cliente            |
+| GET    | `/api/v1/service-orders` | Listar ordens de servico |
+| POST   | `/api/v1/service-orders` | Criar ordem de servico   |
+| ...    | ...                      | ...                      |
 
 ## Variaveis de Ambiente
 
 ### ConfigMap
 
-| Variavel | Descricao |
-|----------|-----------|
-| `NODE_ENV` | Ambiente |
-| `PORT` | Porta da aplicacao |
-| `API_PREFIX` | Prefixo da API |
-| `LOG_LEVEL` | Nivel de log |
-| `OTEL_*` | Configuracoes OpenTelemetry |
+| Variavel     | Descricao                   |
+| ------------ | --------------------------- |
+| `NODE_ENV`   | Ambiente                    |
+| `PORT`       | Porta da aplicacao          |
+| `API_PREFIX` | Prefixo da API              |
+| `LOG_LEVEL`  | Nivel de log                |
+| `OTEL_*`     | Configuracoes OpenTelemetry |
 
 ### Secrets (via External Secrets)
 
-| Variavel | Descricao |
-|----------|-----------|
-| `DATABASE_URL` | Connection string do PostgreSQL |
-| `JWT_SECRET` | Secret para JWT |
-| `JWT_ACCESS_EXPIRY` | Expiracao do access token |
-| `JWT_REFRESH_EXPIRY` | Expiracao do refresh token |
+| Variavel             | Descricao                       |
+| -------------------- | ------------------------------- |
+| `DATABASE_URL`       | Connection string do PostgreSQL |
+| `JWT_SECRET`         | Secret para JWT                 |
+| `JWT_ACCESS_EXPIRY`  | Expiracao do access token       |
+| `JWT_REFRESH_EXPIRY` | Expiracao do refresh token      |
 
 ## Troubleshooting
 
