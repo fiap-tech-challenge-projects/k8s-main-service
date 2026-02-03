@@ -204,40 +204,42 @@ jobs:
           NAMESPACE="ftc-app-staging"
           if ! kubectl get namespace $NAMESPACE > /dev/null 2>&1; then
             echo "ERROR: Namespace $NAMESPACE does not exist!"
-            echo "Run kubernetes-addons terraform apply first to create namespaces."
+            echo "Run kubernetes-addons terraform apply first."
             exit 1
           fi
           echo "✓ Namespace $NAMESPACE exists"
 
-          # Check if External Secrets CRDs exist
+          # Check External Secrets Operator CRDs (REQUIRED per PHASE-3 plan)
           if ! kubectl get crd externalsecrets.external-secrets.io > /dev/null 2>&1; then
             echo "ERROR: ExternalSecret CRD not found!"
-            echo "Run kubernetes-addons terraform apply with enable_external_secrets=true"
+            echo "External Secrets Operator is required for secrets management."
+            echo "Ensure kubernetes-addons terraform applied with enable_external_secrets=true"
             exit 1
           fi
           echo "✓ ExternalSecret CRD installed"
 
           if ! kubectl get crd secretstores.external-secrets.io > /dev/null 2>&1; then
             echo "ERROR: SecretStore CRD not found!"
-            echo "Run kubernetes-addons terraform apply with enable_external_secrets=true"
             exit 1
           fi
           echo "✓ SecretStore CRD installed"
 
-          # Check if External Secrets Operator is running
-          if ! kubectl get pods -n kube-system -l app.kubernetes.io/name=external-secrets | grep -q Running; then
-            echo "WARNING: External Secrets Operator pods not running yet"
-            echo "Waiting for External Secrets Operator to be ready..."
-            kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=external-secrets -n kube-system --timeout=300s || true
-          fi
-          echo "✓ External Secrets Operator is ready"
+          # Wait for External Secrets Operator to be ready
+          echo "Waiting for External Secrets Operator..."
+          kubectl wait --for=condition=ready pod \
+            -l app.kubernetes.io/name=external-secrets \
+            -n external-secrets-system \
+            --timeout=300s || {
+            echo "WARNING: External Secrets Operator not ready yet"
+            kubectl get pods -n external-secrets-system
+          }
+          echo "✓ External Secrets Operator ready"
 
-          # Check if AWS Load Balancer Controller IngressClass exists (optional)
+          # Check AWS Load Balancer Controller
           if kubectl get ingressclass alb > /dev/null 2>&1; then
             echo "✓ AWS Load Balancer Controller IngressClass exists"
           else
             echo "WARNING: ALB IngressClass not found - Ingress may not work"
-            echo "Consider enabling AWS Load Balancer Controller in kubernetes-addons"
           fi
 
           echo ""
@@ -328,40 +330,42 @@ jobs:
           NAMESPACE="ftc-app-production"
           if ! kubectl get namespace $NAMESPACE > /dev/null 2>&1; then
             echo "ERROR: Namespace $NAMESPACE does not exist!"
-            echo "Run kubernetes-addons terraform apply first to create namespaces."
+            echo "Run kubernetes-addons terraform apply first."
             exit 1
           fi
           echo "✓ Namespace $NAMESPACE exists"
 
-          # Check if External Secrets CRDs exist
+          # Check External Secrets Operator CRDs (REQUIRED per PHASE-3 plan)
           if ! kubectl get crd externalsecrets.external-secrets.io > /dev/null 2>&1; then
             echo "ERROR: ExternalSecret CRD not found!"
-            echo "Run kubernetes-addons terraform apply with enable_external_secrets=true"
+            echo "External Secrets Operator is required for secrets management."
+            echo "Ensure kubernetes-addons terraform applied with enable_external_secrets=true"
             exit 1
           fi
           echo "✓ ExternalSecret CRD installed"
 
           if ! kubectl get crd secretstores.external-secrets.io > /dev/null 2>&1; then
             echo "ERROR: SecretStore CRD not found!"
-            echo "Run kubernetes-addons terraform apply with enable_external_secrets=true"
             exit 1
           fi
           echo "✓ SecretStore CRD installed"
 
-          # Check if External Secrets Operator is running
-          if ! kubectl get pods -n kube-system -l app.kubernetes.io/name=external-secrets | grep -q Running; then
-            echo "WARNING: External Secrets Operator pods not running yet"
-            echo "Waiting for External Secrets Operator to be ready..."
-            kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=external-secrets -n kube-system --timeout=300s || true
-          fi
-          echo "✓ External Secrets Operator is ready"
+          # Wait for External Secrets Operator to be ready
+          echo "Waiting for External Secrets Operator..."
+          kubectl wait --for=condition=ready pod \
+            -l app.kubernetes.io/name=external-secrets \
+            -n external-secrets-system \
+            --timeout=300s || {
+            echo "WARNING: External Secrets Operator not ready yet"
+            kubectl get pods -n external-secrets-system
+          }
+          echo "✓ External Secrets Operator ready"
 
-          # Check if AWS Load Balancer Controller IngressClass exists (optional)
+          # Check AWS Load Balancer Controller
           if kubectl get ingressclass alb > /dev/null 2>&1; then
             echo "✓ AWS Load Balancer Controller IngressClass exists"
           else
             echo "WARNING: ALB IngressClass not found - Ingress may not work"
-            echo "Consider enabling AWS Load Balancer Controller in kubernetes-addons"
           fi
 
           echo ""
