@@ -253,6 +253,10 @@ jobs:
           cd k8s/overlays/staging
           kustomize edit set image fiap-tech-challenge-api=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.docker.outputs.image_tag }}
 
+      - name: Replace AWS Account ID placeholders
+        run: |
+          sed -i "s/<AWS_ACCOUNT_ID>/${{ secrets.AWS_ACCOUNT_ID }}/g" k8s/overlays/staging/kustomization.yaml
+
       - name: Deploy to Kubernetes (Staging)
         run: |
           kustomize build k8s/overlays/staging | kubectl apply -f -
@@ -378,6 +382,10 @@ jobs:
         run: |
           cd k8s/overlays/production
           kustomize edit set image fiap-tech-challenge-api=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.docker.outputs.image_tag }}
+
+      - name: Replace AWS Account ID placeholders
+        run: |
+          sed -i "s/<AWS_ACCOUNT_ID>/${{ secrets.AWS_ACCOUNT_ID }}/g" k8s/overlays/production/kustomization.yaml
 
       - name: Deploy to Kubernetes (Production)
         run: |
