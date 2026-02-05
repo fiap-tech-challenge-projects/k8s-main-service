@@ -41,26 +41,8 @@ spec:
   rules:
     - http:
         paths:
-          # API routes
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: fiap-tech-challenge-api
-                port:
-                  name: http
-
-          # Health check (publico)
-          - path: /health
-            pathType: Exact
-            backend:
-              service:
-                name: fiap-tech-challenge-api
-                port:
-                  name: http
-
-          # Swagger/OpenAPI (opcional)
-          - path: /docs
+          # Catch-all route - forward everything to the service
+          - path: /
             pathType: Prefix
             backend:
               service:
